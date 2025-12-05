@@ -1,44 +1,67 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useMemo,
+  useState,
+  useCallback,
+  ReactNode,
+} from "react";
 
-export type MedsStatus = 'pending' | 'taken' | 'missed' | 'delayed';
-
-export interface TodayState {
-  medsStatus: MedsStatus;
-  mood: number;        // 1–5
-  energy: number;      // 1–5
-  sleepHours: number | null;
-  sleepQuality: number; // 1–5
-  notes: string;
-  forProvider: boolean;
-}
-
-const defaultState: TodayState = {
-  medsStatus: 'pending',
-  mood: 3,
-  energy: 3,
-  sleepHours: null,
-  sleepQuality: 3,
-  notes: '',
-  forProvider: false,
+export type MedEntry = {
+  name: string;
+  period: "morning" | "midday" | "evening";
+  taken: boolean;
 };
 
-interface TodayContextValue {
-  today: TodayState;
-  updateToday: (patch: Partial<TodayState>) => void;
-  loading: boolean;
-}
+export type Vitals = {
+  bp?: string;
+  hr?: string;
+  o2?: string;
+  temp?: string;
+};
+
+export type DaySnapshot = {
+  id: string;
+  pain: number;
+  energy: number;
+  mood: number;
+  symptomIntensity?: number;
+  symptomTags?: string[];
+  meds: MedEntry[];
+  vitals: Vitals;
+  notes?: string;
+};
+
+type TodayContextValue = {
+  latest?: DaySnapshot;
+  history: DaySnapshot[];
+  upsertSnapshot: (snap: DaySnapshot) => void;
+};
 
 const TodayContext = createContext<TodayContextValue | undefined>(undefined);
 
 export function TodayProvider({ children }: { children: ReactNode }) {
-  const [today, setToday] = useState<TodayState>(defaultState);
+  const [history, setHistory] = useState<DaySnapshot[]>([]);
 
-  const updateToday = (patch: Partial<TodayState>) => {
-    setToday((prev) => ({ ...prev, ...patch }));
-  };
+  const upsertSnapshot = useCallback((snap: DaySnapshot) => {
+    setHistory(prev => {
+      const withoutSameId = prev.filter(d => d.id !== snap.id);
+      return [snap, ...withoutSameId];
+    });
+  }, []);
+
+  const latest = useMemo(
+    () => (history.length > 0 ? history[0] : undefined),
+    [history]
+  );
+
+  const value: TodayContextValue = useMemo(
+    () => ({ latest, history, upsertSnapshot }),
+    [latest, history, upsertSnapshot]
+  );
 
   return (
-    <TodayContext.Provider value={{ today, updateToday, loading: false }}>
+    <TodayContext.Provider value={value}>
       {children}
     </TodayContext.Provider>
   );
@@ -47,7 +70,7 @@ export function TodayProvider({ children }: { children: ReactNode }) {
 export function useToday() {
   const ctx = useContext(TodayContext);
   if (!ctx) {
-    throw new Error('useToday must be used inside TodayProvider');
+    throw new Error("useToday must be used within TodayProvider");
   }
   return ctx;
 }

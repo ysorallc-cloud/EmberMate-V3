@@ -8,14 +8,9 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import SignalMetricCard from "../components/SignalMetricCard";
 
-type LogCategory =
-  | "vitals"
-  | "medication"
-  | "mood"
-  | "symptom"
-  | "food"
-  | "note";
+type LogCategory = "vitals" | "medication" | "mood" | "symptom" | "food" | "note";
 
 type RecentEntryType =
   | "vitals"
@@ -48,16 +43,6 @@ const QUICK_LOG_ITEMS: { key: LogCategory; label: string; icon: string }[] = [
   { key: "food", label: "Food", icon: "restaurant-outline" },
   { key: "note", label: "Note", icon: "document-text-outline" }
 ];
-
-// Map quick log tiles to real routes under /app/log
-const LOG_ROUTE_MAP: Record<LogCategory, string> = {
-  vitals: "/log/vitals",
-  medication: "/log/meds",
-  mood: "/log/mood",
-  symptom: "/log/symptoms",
-  food: "/log/activity",
-  note: "/log/activity" // future: /log/note
-};
 
 const RECENT_ENTRIES: RecentEntry[] = [
   {
@@ -103,9 +88,36 @@ const TYPE_COLORS: Record<RecentEntryType, string> = {
   note: "#38BDF8"
 };
 
+const LOG_SIGNALS = [
+  {
+    id: "mood",
+    label: "Mood",
+    valueLabel: "Soft steady",
+    level: "ok" as const,
+    percent: 72,
+    iconName: "happy-outline" as const
+  },
+  {
+    id: "energy",
+    label: "Energy",
+    valueLabel: "Moderate",
+    level: "watch" as const,
+    percent: 55,
+    iconName: "flash-outline" as const
+  },
+  {
+    id: "pain",
+    label: "Pain",
+    valueLabel: "6 / 10",
+    level: "concern" as const,
+    percent: 60,
+    iconName: "alert-circle-outline" as const
+  }
+];
+
 function startOfWeek(date: Date): Date {
   const d = new Date(date);
-  const day = d.getDay(); // 0 = Sunday
+  const day = d.getDay();
   const diff = d.getDate() - day;
   d.setDate(diff);
   d.setHours(0, 0, 0, 0);
@@ -134,18 +146,14 @@ function formatWeekRange(date: Date): string {
   const end = new Date(start);
   end.setDate(start.getDate() + 6);
 
-  const options: Intl.DateTimeFormatOptions = {
-    month: "short",
-    day: "numeric"
-  };
-
+  const options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
   const startLabel = start.toLocaleDateString(undefined, options);
   const endLabel = end.toLocaleDateString(undefined, options);
 
-  return `Week of ${startLabel} – ${endLabel}`;
+  return `Week of ${startLabel} - ${endLabel}`;
 }
 
-export default function LogScreen() {
+const LogScreen: React.FC = () => {
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
@@ -161,20 +169,12 @@ export default function LogScreen() {
     a.getDate() === b.getDate();
 
   const handleQuickLogPress = (key: LogCategory) => {
-    const path = LOG_ROUTE_MAP[key];
-    if (path) {
-      router.push(path);
-    }
+    router.push(`/log/${key}`);
   };
 
   const handleWeeklySummaryPress = () => {
-    // Send the selected date into the calendar screen
-    router.push({
-      pathname: "/log/calendar",
-      params: { date: selectedDate.toISOString() }
-    });
+    router.push("/log/summary");
   };
-
 
   return (
     <View style={styles.container}>
@@ -182,86 +182,92 @@ export default function LogScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Log</Text>
           <Text style={styles.subtitle}>Record health and wellness data</Text>
         </View>
 
-        {/* BLOCK 1: PLAN TODAY (Calendar + Quick Log) */}
         <View style={styles.section}>
-          <View style={styles.planCard}>
-            {/* Calendar */}
-            <View style={styles.calendarWrapper}>
-              <View style={styles.calendarHeaderRow}>
-                <Text style={styles.weekLabel}>{weekLabel}</Text>
-              </View>
-              <View style={styles.calendarRow}>
-                {weekDays.map(day => {
-                  const selected = isSameDay(day.date, selectedDate);
-                  return (
-                    <TouchableOpacity
-                      key={day.date.toISOString()}
-                      style={[
-                        styles.calendarItem,
-                        selected && styles.calendarItemSelected
-                      ]}
-                      onPress={() => setSelectedDate(day.date)}
-                      activeOpacity={0.9}
-                    >
-                      <Text
-                        style={[
-                          styles.calendarWeekday,
-                          selected && styles.calendarWeekdaySelected
-                        ]}
-                      >
-                        {day.weekday}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.calendarDate,
-                          selected && styles.calendarDateSelected
-                        ]}
-                      >
-                        {day.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-
-            {/* Quick log inside same planning card */}
-            <View style={styles.planQuickHeader}>
-              <Text style={styles.sectionTitle}>Quick Log</Text>
-              <Text style={styles.sectionHint}>
-                Tap what you want to capture for this day.
-              </Text>
-            </View>
-            <View style={styles.quickGrid}>
-              {QUICK_LOG_ITEMS.map(item => (
-                <TouchableOpacity
-                  key={item.key}
-                  style={styles.quickCard}
-                  activeOpacity={0.9}
-                  onPress={() => handleQuickLogPress(item.key)}
-                >
-                  <View style={styles.quickIconWrapper}>
-                    <Ionicons
-                      name={item.icon as any}
-                      size={24}
-                      color="#F97316"
-                    />
-                  </View>
-                  <Text style={styles.quickLabel}>{item.label}</Text>
-                </TouchableOpacity>
+          <View style={styles.signalsCard}>
+            <Text style={styles.sectionTitle}>Signals for today</Text>
+            <Text style={styles.signalsSubtitle}>
+              Quick read on how things are trending right now.
+            </Text>
+            <View style={styles.signalRow}>
+              {LOG_SIGNALS.map(signal => (
+                <SignalMetricCard
+                  key={signal.id}
+                  label={signal.label}
+                  valueLabel={signal.valueLabel}
+                  level={signal.level}
+                  percent={signal.percent}
+                  iconName={signal.iconName}
+                />
               ))}
             </View>
           </View>
         </View>
 
-        {/* BLOCK 2: SEE PATTERNS */}
-        <View style={[styles.section, styles.patternsSection]}>
+        <View style={styles.calendarWrapper}>
+          <View style={styles.calendarHeaderRow}>
+            <Text style={styles.weekLabel}>{weekLabel}</Text>
+          </View>
+
+          <View style={styles.calendarRow}>
+            {weekDays.map(day => {
+              const selected = isSameDay(day.date, selectedDate);
+              return (
+                <TouchableOpacity
+                  key={day.date.toISOString()}
+                  style={[
+                    styles.calendarItem,
+                    selected && styles.calendarItemSelected
+                  ]}
+                  onPress={() => setSelectedDate(day.date)}
+                  activeOpacity={0.9}
+                >
+                  <Text
+                    style={[
+                      styles.calendarWeekday,
+                      selected && styles.calendarWeekdaySelected
+                    ]}
+                  >
+                    {day.weekday}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.calendarDate,
+                      selected && styles.calendarDateSelected
+                    ]}
+                  >
+                    {day.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick Log</Text>
+          <View style={styles.quickGrid}>
+            {QUICK_LOG_ITEMS.map(item => (
+              <TouchableOpacity
+                key={item.key}
+                style={styles.quickCard}
+                activeOpacity={0.9}
+                onPress={() => handleQuickLogPress(item.key)}
+              >
+                <View style={styles.quickIconWrapper}>
+                  <Ionicons name={item.icon as any} size={24} color="#F97316" />
+                </View>
+                <Text style={styles.quickLabel}>{item.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Today&apos;s Patterns</Text>
           <View style={styles.insightsCard}>
             <View style={styles.insightsRow}>
@@ -291,14 +297,17 @@ export default function LogScreen() {
           </View>
         </View>
 
-        {/* BLOCK 3: REVIEW RECENT */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Entries</Text>
-          <View style={styles.historyCard}>
+          <View style={styles.entriesList}>
             {RECENT_ENTRIES.map(entry => {
               const color = TYPE_COLORS[entry.type];
               return (
-                <View key={entry.id} style={styles.entryCard}>
+                <TouchableOpacity
+                  key={entry.id}
+                  style={styles.entryCard}
+                  activeOpacity={0.9}
+                >
                   <View style={styles.entryIconWrapper}>
                     <View
                       style={[styles.entryIconDot, { backgroundColor: color }]}
@@ -320,17 +329,20 @@ export default function LogScreen() {
                     </View>
                     <Text style={styles.entrySubtitle}>{entry.subtitle}</Text>
                   </View>
-                </View>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color="#64748B"
+                  />
+                </TouchableOpacity>
               );
             })}
           </View>
         </View>
 
-        {/* Spacer so list doesn't jam into button */}
         <View style={{ height: 16 }} />
       </ScrollView>
 
-      {/* Weekly summary CTA */}
       <View style={styles.footer}>
         <TouchableOpacity
           style={styles.summaryButton}
@@ -343,7 +355,7 @@ export default function LogScreen() {
       </View>
     </View>
   );
-}
+};
 
 function getEntryIcon(type: RecentEntryType): keyof typeof Ionicons.glyphMap {
   switch (type) {
@@ -371,7 +383,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 24,
-    paddingBottom: 110 // extra room so list and button do not collide
+    paddingBottom: 80
   },
   header: {
     marginBottom: 16
@@ -386,24 +398,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#94A3B8"
   },
-
-  section: {
-    marginBottom: 24
-  },
-
-  // PLAN BLOCK
-  planCard: {
+  signalsCard: {
+    borderRadius: 20,
     backgroundColor: "#020817",
-    borderRadius: 24,
-    paddingVertical: 16,
-    paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: "rgba(148,163,184,0.3)"
+    borderColor: "rgba(148,163,184,0.35)",
+    padding: 16
+  },
+  signalsSubtitle: {
+    fontSize: 12,
+    color: "#9CA3AF",
+    marginBottom: 12
+  },
+  signalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between"
   },
   calendarWrapper: {
-    borderRadius: 18,
-    paddingVertical: 8,
-    paddingHorizontal: 6
+    backgroundColor: "#020817",
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: "rgba(148,163,184,0.3)",
+    marginBottom: 28
   },
   calendarHeaderRow: {
     flexDirection: "row",
@@ -446,21 +464,15 @@ const styles = StyleSheet.create({
   calendarDateSelected: {
     color: "#0F172A"
   },
-  planQuickHeader: {
-    marginTop: 16,
-    marginBottom: 8
+  section: {
+    marginBottom: 28
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "700",
-    color: "#F9FAFB"
+    color: "#F9FAFB",
+    marginBottom: 12
   },
-  sectionHint: {
-    fontSize: 13,
-    color: "#9CA3AF",
-    marginTop: 2
-  },
-
   quickGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -472,10 +484,10 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: "rgba(148,163,184,0.35)",
-    backgroundColor: "#020617",
+    backgroundColor: "#020817",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 12
+    marginBottom: 14
   },
   quickIconWrapper: {
     marginBottom: 6
@@ -483,13 +495,7 @@ const styles = StyleSheet.create({
   quickLabel: {
     fontSize: 13,
     color: "#E5E7EB",
-    fontWeight: "500",
-    textAlign: "center"
-  },
-
-  // PATTERNS BLOCK
-  patternsSection: {
-    marginTop: 4
+    fontWeight: "500"
   },
   insightsCard: {
     borderRadius: 18,
@@ -516,41 +522,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#E5E7EB"
   },
-
-  // HISTORY BLOCK
-  historyCard: {
-    backgroundColor: "#020817",
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 4
-  },
+  entriesList: {},
   entryCard: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 16,
-    backgroundColor: "#020617",
+    borderRadius: 18,
+    backgroundColor: "#020817",
     borderWidth: 1,
     borderColor: "rgba(148,163,184,0.35)",
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    marginBottom: 8
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    marginBottom: 10
   },
   entryIconWrapper: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: "#020617",
     borderWidth: 1,
     borderColor: "rgba(148,163,184,0.4)",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 10,
+    marginRight: 12,
     position: "relative"
   },
   entryIconDot: {
     position: "absolute",
-    top: 5,
-    right: 5,
+    top: 6,
+    right: 6,
     width: 7,
     height: 7,
     borderRadius: 3.5
@@ -560,8 +559,8 @@ const styles = StyleSheet.create({
   },
   entryTitleRow: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
-    alignItems: "baseline",
     marginBottom: 2
   },
   entryTitle: {
@@ -577,17 +576,15 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#94A3B8"
   },
-
-  // FOOTER
   footer: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
     paddingHorizontal: 20,
-    paddingBottom: 22,
+    paddingBottom: 24,
     paddingTop: 8,
-    backgroundColor: "rgba(2,6,23,0.95)"
+    backgroundColor: "rgba(2,6,23,0.9)"
   },
   summaryButton: {
     flexDirection: "row",
@@ -604,3 +601,5 @@ const styles = StyleSheet.create({
     color: "#0F172A"
   }
 });
+
+export default LogScreen;

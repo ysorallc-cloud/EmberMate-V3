@@ -1,0 +1,85 @@
+{
+  "todaySnapshot": {
+    "date": "ISO string (YYYY-MM-DD)",
+    "mood": "number (0-10)",
+    "energy": "number (0-10)",
+    "sleep": {
+      "hours": "number",
+      "quality": "number (1-5)"
+    },
+    "hydrationOz": "number",
+    "notes": "string"
+  },
+  "medLog": {
+    "id": "string",
+    "name": "string",
+    "dose": "string",
+    "schedule": "enum('morning','afternoon','evening','bedtime','prn')",
+    "taken": "boolean",
+    "time": "string (HH:mm)",
+    "late": "boolean",
+    "sideEffects": [
+      {
+        "label": "string",
+        "severity": "number (0-10)"
+      }
+    ]
+  },
+  "vitals": {
+    "bp": "string '120/80'",
+    "hr": "number",
+    "o2": "number",
+    "weightLbs": "number",
+    "temperatureF": "number",
+    "glucose": "number",
+    "notes": "string"
+  },
+  "symptomLog": {
+    "symptom": "string (from catalog)",
+    "severity": "number (0-10)",
+    "triggers": [
+      "string"
+    ],
+    "notes": "string",
+    "timestamp": "ISO datetime"
+  },
+  "mealHydration": {
+    "meal": "enum('breakfast','lunch','dinner','snack')",
+    "ate": "boolean",
+    "appetite": "enum('low','normal','high')",
+    "hydrationAddedOz": "number"
+  },
+  "redFlag": {
+    "id": "string",
+    "flag": "string",
+    "context": "string",
+    "autoDetected": "boolean",
+    "timestamp": "ISO datetime"
+  },
+  "careNote": {
+    "id": "string",
+    "changes": [
+      "string"
+    ],
+    "function": [
+      "string"
+    ],
+    "questions": [
+      "string"
+    ],
+    "timestamp": "ISO datetime"
+  },
+  "careCircleMember": {
+    "id": "string",
+    "name": "string",
+    "role": "enum('primaryCaregiver','secondaryCaregiver','nurse','physician','therapist','other')",
+    "relationship": "string",
+    "permissions": {
+      "canViewMeds": "boolean",
+      "canViewSymptoms": "boolean",
+      "canViewVitals": "boolean",
+      "canViewNotes": "boolean",
+      "canExportReports": "boolean"
+    }
+  }
+}

@@ -1,31 +1,48 @@
-# EmberMate Mobile App
+# EmberMate Foundation Kit
 
-EmberMate is an Expo-based React Native app for caregivers. This repo is a clean, self-contained mobile project.
+This bundle contains:
 
-## Run Locally
+- A small **UI component kit** for core inputs.
+- A **data schema** describing how logs and care data should be shaped.
+- An **input system mapping** so there is no ambiguity about which component to use where.
 
-```bash
-git clone https://github.com/ysorallc-cloud/EmberMate-V3.git
-cd EmberMate-V3
-npm install
-npx expo start
-```
+## Structure
 
-The Expo CLI will prompt you to open the app in Expo Go, an iOS simulator, or an Android emulator.
+- `ui/` – Reusable React Native components (cards, sliders, dropdowns, chips, etc).
+- `docs/data-schema.json` – JSON description of the core data models for logs, vitals, meds, care circle, etc.
+- `docs/input-mapping.md` – Human-readable guide mapping fields to UI components by screen.
 
-## EAS Build Commands
+## How to use
 
-```bash
-# one-time setup
-npx expo login
-npm install -g eas-cli
-eas init
+1. Drop `ui/` into your app repo (for example: `app/ui`).
+2. Install the slider dependency:
 
-# build for iOS
-eas build --platform ios
+   ```bash
+   npx expo install @react-native-community/slider
+   ```
 
-# build for Android
-eas build --platform android
-```
+3. Import components via:
 
-Refer to [Expo docs](https://docs.expo.dev) for store submission steps and advanced configuration.
+   ```ts
+   import { EmberCard, SliderInput, DropdownInput } from "../ui";
+   ```
+
+4. Use `docs/data-schema.json` as the source of truth for the shape of:
+
+   - daily snapshots
+   - med logs
+   - symptom logs
+   - vitals
+   - meals & hydration
+   - red flags
+   - care notes
+   - care circle members
+
+5. Use `docs/input-mapping.md` when building or reviewing screens so that:
+
+   - Today tab stays light, quick, and slider/chip-heavy.
+   - Log tab uses structured inputs suited for exports.
+   - Care Plan uses dropdowns, checkboxes, and pills for roles and permissions.
+   - Insights remains read-only and driven by the underlying schema.
+
+This kit is the floor, not the ceiling: you can add more components, but you should not change the data shapes or swap input types without a very good, documented reason.
